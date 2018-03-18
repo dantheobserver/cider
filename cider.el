@@ -141,14 +141,14 @@ version from the CIDER package or library.")
   :safe #'stringp
   :package-version '(cider . "0.9.0"))
 
-(defcustom cider-clojure-command
+(defcustom cider-clojure-cli-command
   "clojure"
   "The command used to execute clojure with tools.deps (requires Clojure 1.9+)."
   :type 'string
   :group 'cider
   :package-version '(cider . "0.17.0"))
 
-(defcustom cider-clojure-global-options
+(defcustom cider-clojure-cli-global-options
   nil
   "Command line options used to execute clojure with tools.deps."
   :type 'string
@@ -156,7 +156,7 @@ version from the CIDER package or library.")
   :safe #'stringp
   :package-version '(cider . "0.17.0"))
 
-(defcustom cider-clojure-parameters
+(defcustom cider-clojure-cli-parameters
   "-e '(require (quote cider-nrepl.main)) (cider-nrepl.main/init [\"cider.nrepl/cider-middleware\"])'"
   "Params passed to clojure to start an nREPL server via `cider-jack-in'."
   :type 'string
@@ -188,7 +188,7 @@ version from the CIDER package or library.")
   :package-version '(cider . "0.10.0"))
 
 (defcustom cider-default-repl-command
-  cider-clojure-command
+  cider-clojure-cli-command
   "The default command and parameters to use when connecting to nREPL.
 This value will only be consulted when no identifying file types, i.e.
 project.clj for leiningen or build.boot for boot, could be found.
@@ -267,6 +267,13 @@ This variable is used by `cider-connect'."
   :type 'boolean
   :version '(cider . "0.15.0"))
 
+(defcustom cider-nrepl-port-search-paths nil
+  "When non-nil, `cider-connect' search the paths for the .nrepl-port file.
+After selecting hostname, any .nrepl-port file locaded in these paths will
+be used to display the port number to select";
+  :type '(repeat (string :tag "directory"))
+  :group 'cider)
+
 (defvar cider-ps-running-nrepls-command "ps u | grep leiningen"
   "Process snapshot command used in `cider-locate-running-nrepl-ports'.")
 
@@ -291,7 +298,7 @@ Sub-match 1 must be the project path.")
   (pcase project-type
     ("lein" cider-lein-command)
     ("boot" cider-boot-command)
-    ("clojure" cider-clojure-command)
+    ("clojure" cider-clojure-cli-command)
     ("gradle" cider-gradle-command)
     (_ (user-error "Unsupported project type `%s'" project-type))))
 
@@ -302,7 +309,7 @@ Throws an error if PROJECT-TYPE is unknown.  Known types are
   (pcase project-type
     ("lein" (cider--lein-resolve-command))
     ("boot" (cider--boot-resolve-command))
-    ("clojure" (cider--clojure-resolve-command))
+    ("clojure" (cider--clojure-cli-resolve-command))
     ("gradle" (cider--gradle-resolve-command))
     (_ (user-error "Unsupported project type `%s'" project-type))))
 
@@ -311,7 +318,7 @@ Throws an error if PROJECT-TYPE is unknown.  Known types are
   (pcase project-type
     ("lein" cider-lein-global-options)
     ("boot" cider-boot-global-options)
-    ("clojure" cider-clojure-global-options)
+    ("clojure" cider-clojure-cli-global-options)
     ("gradle" cider-gradle-global-options)
     (_ (user-error "Unsupported project type `%s'" project-type))))
 
@@ -320,7 +327,7 @@ Throws an error if PROJECT-TYPE is unknown.  Known types are
   (pcase project-type
     ("lein" cider-lein-parameters)
     ("boot" cider-boot-parameters)
-    ("clojure" cider-clojure-parameters)
+    ("clojure" cider-clojure-cli-parameters)
     ("gradle" cider-gradle-parameters)
     (_ (user-error "Unsupported project type `%s'" project-type))))
 
@@ -872,7 +879,8 @@ of remote SSH hosts."
   "Locate ports of running nREPL servers.
 When DIR is non-nil also look for nREPL port files in DIR.  Return a list
 of list of the form (project-dir port)."
-  (let* ((paths (cider--running-nrepl-paths))
+  (let* ((paths (append cider-nrepl-port-search-paths
+                       (cider--running-nrepl-paths)))
          (proj-ports (mapcar (lambda (d)
                                (when-let* ((port (and d (nrepl-extract-port (cider--file-path d)))))
                                  (list (file-name-nondirectory (directory-file-name d)) port)))
@@ -953,14 +961,14 @@ In case `default-directory' is non-local we assume the command is available."
                            (executable-find (concat cider-gradle-command ".exe")))))
     (shell-quote-argument command)))
 
-;; TODO: Implement a check for `cider-clojure-command' over tramp
-(defun cider--clojure-resolve-command ()
-  "Find `cider-clojure-command' on `exec-path' if possible, or return nil.
+;; TODO: Implement a check for `cider-clojure-cli-command' over tramp
+(defun cider--clojure-cli-resolve-command ()
+  "Find `cider-clojure-cli-command' on `exec-path' if possible, or return nil.
 
 In case `default-directory' is non-local we assume the command is available."
-  (when-let* ((command (or (and (file-remote-p default-directory) cider-clojure-command)
-                           (executable-find cider-clojure-command)
-                           (executable-find (concat cider-clojure-command ".exe")))))
+  (when-let* ((command (or (and (file-remote-p default-directory) cider-clojure-cli-command)
+                           (executable-find cider-clojure-cli-command)
+                           (executable-find (concat cider-clojure-cli-command ".exe")))))
     (shell-quote-argument command)))
 
 

@@ -880,7 +880,7 @@ of remote SSH hosts."
 When DIR is non-nil also look for nREPL port files in DIR.  Return a list
 of list of the form (project-dir port)."
   (let* ((paths (append cider-nrepl-port-search-paths
-                       (cider--running-nrepl-paths)))
+                        (cider--running-nrepl-paths)))
          (proj-ports (mapcar (lambda (d)
                                (when-let* ((port (and d (nrepl-extract-port (cider--file-path d)))))
                                  (list (file-name-nondirectory (directory-file-name d)) port)))
